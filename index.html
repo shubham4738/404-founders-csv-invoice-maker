@@ -101,7 +101,7 @@
             <th>Customer Name</th>
             <th>Item</th>
             <th style="width: 100px;">Quantity</th>
-            <th style="width: 120px;">Price per Item ($)</th>
+            <th style="width: 120px;">Price per Item (₹)</th>
             <th style="width: 120px;">Final Amount</th>
             <th style="width: 160px;">Status</th>
             <th style="width: 80px;">Action</th>
@@ -319,13 +319,13 @@ function printInvoice(invNo) {
           <tr>
             <td style="padding: 6px;">${inv.item}</td>
             <td style="text-align: right; padding: 6px;">${inv.quantity}</td>
-            <td style="text-align: right; padding: 6px;">$${inv.price}</td>
-            <td style="text-align: right; padding: 6px;">$${inv.finalAmount}</td>
+            <td style="text-align: right; padding: 6px;">₹${inv.price}</td>
+            <td style="text-align: right; padding: 6px;">₹${inv.finalAmount}</td>
           </tr>
         </tbody>
       </table>
       <div style="text-align: right; margin-top: 20px;">
-        <h3>Final Total: $${inv.finalAmount}</h3>
+        <h3>Final Total: ₹${inv.finalAmount}</h3>
       </div>
     </div>
   `;
@@ -365,7 +365,7 @@ function renderAll() {
           <td><input type="text" class="${hasItemErr ? 'field-error' : ''}" value="${r.item}" placeholder="Item" onchange="handleCellChange('${r.id}', 'item', this.value)"></td>
           <td><input type="text" class="${hasQtyErr ? 'field-error' : ''}" value="${r.quantity}" placeholder="Qty" onchange="handleCellChange('${r.id}', 'quantity', this.value)"></td>
           <td><input type="text" class="${hasPriceErr ? 'field-error' : ''}" value="${r.price}" placeholder="Price" onchange="handleCellChange('${r.id}', 'price', this.value)"></td>
-          <td style="font-weight: 600;">${r.finalAmount !== '-' ? '$' + r.finalAmount : '-'}</td>
+          <td style="font-weight: 600;">${r.finalAmount !== '-' ? '₹' + r.finalAmount : '-'}</td>
           <td>${r.isValid ? '<span class="status-tag tag-ok">OK</span>' : '<span class="status-tag tag-err">' + r.errors.join(', ') + '</span>'}</td>
           <td><button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="handleRemoveRow('${r.id}')">Remove</button></td>
         </tr>
@@ -384,8 +384,8 @@ function renderAll() {
         <td>${inv.customer}</td>
         <td>${inv.item}</td>
         <td>${inv.quantity}</td>
-        <td>$${inv.price}</td>
-        <td style="font-weight: 600;">$${inv.finalAmount}</td>
+        <td>₹${inv.price}</td>
+        <td style="font-weight: 600;">₹${inv.finalAmount}</td>
         <td><button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;" onclick="printInvoice('${inv.invoiceNo}')">Print</button></td>
       </tr>
     `).join('');
