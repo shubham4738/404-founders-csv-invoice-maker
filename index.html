@@ -39,6 +39,13 @@
     .tag-ok { background: #f0fdf4; color: #15803d; }
     .tag-err { background: #fef2f2; color: #b91c1c; }
     .empty-state { text-align: center; padding: 32px; color: #64748b; font-size: 14px; }
+    
+    /* Modal styles */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+    .modal-content { background: #ffffff; border-radius: 8px; max-width: 650px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 16px; }
+    .close-btn { background: transparent; border: none; font-size: 20px; font-weight: bold; cursor: pointer; color: #64748b; }
+
     @media print {
       body * { visibility: hidden; }
       #printableInvoice, #printableInvoice * { visibility: visible; }
@@ -51,10 +58,9 @@
 <div class="container">
   <div class="card header-card">
     <div class="title-area">
-      <h1>CSV Data Cleaner & Invoice Maker <span class="badge">Office Tool</span></h1>
-      <p class="subtitle">Import sales CSV, validate data live, correct mistakes, and generate duplicate-protected office invoices.</p>
+      <h1>CSV Data Cleaner & Invoice Maker <span class="badge">Team - 404 Founders</span></h1>
+      <p class="subtitle">Import sales orders CSV, clean mistakes live, and generate duplicate-protected office invoices.</p>
     </div>
-    <!-- Direct reset without blocking confirm alert -->
     <button class="btn btn-danger" id="resetBtn">Reset All Data</button>
   </div>
 
@@ -72,7 +78,7 @@
       <div class="stat-value stat-val-error" id="countErrors">0</div>
     </div>
     <div class="stat-box">
-      <div class="stat-title">Saved Invoices</div>
+      <div class="stat-title">Created Invoices</div>
       <div class="stat-value" id="countSaved">0</div>
     </div>
   </div>
@@ -92,7 +98,7 @@
 
   <div class="card">
     <h2 style="font-size: 16px; margin-bottom: 4px;">Data Cleaning & Validation Table</h2>
-    <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Edit any cell inline to fix errors. Rows with "OK" will be transformed into invoices.</p>
+    <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Type directly to correct values. Click outside or press Enter to validate.</p>
     <div class="table-container">
       <table>
         <thead>
@@ -103,7 +109,7 @@
             <th style="width: 100px;">Quantity</th>
             <th style="width: 120px;">Price per Item (₹)</th>
             <th style="width: 120px;">Final Amount</th>
-            <th style="width: 160px;">Status</th>
+            <th style="width: 180px;">Status</th>
             <th style="width: 80px;">Action</th>
           </tr>
         </thead>
@@ -114,7 +120,7 @@
 
   <div class="card">
     <h2 style="font-size: 16px; margin-bottom: 4px;">Created Invoices</h2>
-    <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Saved invoices stored locally. Protected against re-invoicing duplicates.</p>
+    <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Generated invoices with duplicate protection against re-imports.</p>
     <div class="table-container">
       <table>
         <thead>
@@ -126,11 +132,26 @@
             <th>Qty</th>
             <th>Price</th>
             <th>Final Amount</th>
-            <th>Action</th>
+            <th style="width: 150px;">Action</th>
           </tr>
         </thead>
         <tbody id="invoicesBody"></tbody>
       </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal for Viewing / Opening Invoice -->
+<div class="modal-overlay" id="invoiceModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3 style="font-size: 18px;">Invoice Details</h3>
+      <button class="close-btn" onclick="closeModal()">&times;</button>
+    </div>
+    <div id="modalBody"></div>
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+      <button class="btn btn-outline" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" id="modalPrintBtn">🖨 Print Invoice</button>
     </div>
   </div>
 </div>
@@ -158,7 +179,7 @@ document.getElementById('downloadSampleBtn').addEventListener('click', () => {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'sample_office_orders.csv';
+  link.download = 'sample_orders.csv';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -168,7 +189,6 @@ document.getElementById('downloadSampleBtn').addEventListener('click', () => {
 document.getElementById('resetBtn').addEventListener('click', () => {
   tableRows = [];
   savedInvoices = [];
-  localStorage.clear();
   document.getElementById('csvFileInput').value = '';
   renderAll();
 });
@@ -202,7 +222,7 @@ document.getElementById('csvFileInput').addEventListener('change', (e) => {
 
     const parsed = [];
     for (let i = 1; i < lines.length; i++) {
-      const cols = lines[i].split(',').map(c => c.trim());
+      const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"\vert{}"$/g, ''));
       parsed.push({
         id: 'row_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substring(2, 5),
         customer: cols[0] || '',
@@ -211,8 +231,9 @@ document.getElementById('csvFileInput').addEventListener('change', (e) => {
         price: cols[3] !== undefined ? cols[3] : ''
       });
     }
-    tableRows = parsed;
+    tableRows = [...tableRows, ...parsed];
     renderAll();
+    e.target.value = '';
   };
   reader.readAsText(file);
 });
@@ -222,7 +243,16 @@ function handleRemoveRow(id) {
   renderAll();
 }
 
-function handleCellChange(id, field, value) {
+// Background data update without losing focus
+function updateCellSilent(id, field, value) {
+  const row = tableRows.find(r => r.id === id);
+  if (row) {
+    row[field] = value;
+  }
+}
+
+// Re-validate and refresh UI once user leaves the input or presses Enter
+function handleCellBlur(id, field, value) {
   const row = tableRows.find(r => r.id === id);
   if (row) {
     row[field] = value.trim();
@@ -235,34 +265,34 @@ function validateRows() {
 
   return tableRows.map((r) => {
     const errors = [];
-    if (!r.customer) errors.push("Missing name");
-    if (!r.item) errors.push("Missing item");
+    if (!r.customer) errors.push("Missing customer name");
+    if (!r.item) errors.push("Missing item name");
 
     const qNum = Number(r.quantity);
     if (r.quantity === '' || isNaN(qNum) || !Number.isInteger(qNum) || qNum <= 0) {
-      errors.push("Invalid quantity");
+      errors.push("Quantity must be whole number > 0");
     }
 
     const pNum = Number(r.price);
     if (r.price === '' || isNaN(pNum) || pNum < 0) {
-      errors.push("Invalid price");
+      errors.push("Price must be 0 or more");
     }
 
     const comboKey = `${r.customer.toLowerCase()}|${r.item.toLowerCase()}|${r.quantity}|${r.price}`;
-    if (seenCombos.has(comboKey)) {
-      errors.push("Repeated row");
-    } else if (r.customer && r.item) {
-      seenCombos.set(comboKey, true);
-    }
-
+    
     const isAlreadyInvoiced = savedInvoices.some(inv => 
       inv.customer.toLowerCase() === r.customer.toLowerCase() &&
       inv.item.toLowerCase() === r.item.toLowerCase() &&
       String(inv.quantity) === String(r.quantity) &&
       String(inv.price) === String(r.price)
     );
+
     if (isAlreadyInvoiced) {
-      errors.push("Already invoiced");
+      errors.push("Already invoiced (Duplicate)");
+    } else if (seenCombos.has(comboKey)) {
+      errors.push("Repeated in current file");
+    } else if (r.customer && r.item) {
+      seenCombos.set(comboKey, true);
     }
 
     const isValid = errors.length === 0;
@@ -277,7 +307,7 @@ document.getElementById('createInvoicesBtn').addEventListener('click', () => {
   const readyRows = validated.filter(r => r.isValid);
   if (readyRows.length === 0) return;
 
-  const today = new Date().toLocaleDateString();
+  const today = new Date().toISOString().split('T')[0];
   const newInvoices = readyRows.map((r, i) => ({
     invoiceNo: 'INV-' + (savedInvoices.length + i + 1001),
     date: today,
@@ -294,41 +324,67 @@ document.getElementById('createInvoicesBtn').addEventListener('click', () => {
   renderAll();
 });
 
+function getInvoiceHTML(inv) {
+  return `
+    <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 20px; background: #fff;">
+      <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 10px;">
+        <div>
+          <h2 style="font-size: 20px; font-weight: 700;">TAX INVOICE</h2>
+          <p style="font-size: 13px; color: #64748b;">Office Invoice System</p>
+        </div>
+        <div style="text-align: right; font-size: 13px;">
+          <p><strong>Invoice #:</strong> ${inv.invoiceNo}</p>
+          <p><strong>Date:</strong> ${inv.date}</p>
+        </div>
+      </div>
+      <div style="margin: 16px 0; font-size: 14px;">
+        <p><strong>Billed To:</strong> ${inv.customer}</p>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px;">
+        <thead>
+          <tr style="background: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
+            <th style="text-align: left; padding: 8px;">Item Description</th>
+            <th style="text-align: right; padding: 8px;">Qty</th>
+            <th style="text-align: right; padding: 8px;">Price (₹)</th>
+            <th style="text-align: right; padding: 8px;">Amount (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">${inv.item}</td>
+            <td style="text-align: right; padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">${inv.quantity}</td>
+            <td style="text-align: right; padding: 10px 8px; border-bottom: 1px solid #e2e8f0;">${inv.price}</td>
+            <td style="text-align: right; padding: 10px 8px; border-bottom: 1px solid #e2e8f0; font-weight: 600;">${inv.finalAmount}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="text-align: right; margin-top: 16px; font-size: 16px; font-weight: 700;">
+        Total Amount: ₹${inv.finalAmount}
+      </div>
+    </div>
+  `;
+}
+
+function openInvoice(invNo) {
+  const inv = savedInvoices.find(i => i.invoiceNo === invNo);
+  if (!inv) return;
+
+  const modalBody = document.getElementById('modalBody');
+  modalBody.innerHTML = getInvoiceHTML(inv);
+  document.getElementById('modalPrintBtn').onclick = () => printInvoice(invNo);
+  document.getElementById('invoiceModal').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('invoiceModal').style.display = 'none';
+}
+
 function printInvoice(invNo) {
   const inv = savedInvoices.find(i => i.invoiceNo === invNo);
   if (!inv) return;
 
   const printable = document.getElementById('printableInvoice');
-  printable.innerHTML = `
-    <div style="border: 2px solid #333; padding: 24px; max-width: 600px; margin: 0 auto;">
-      <h2>TAX INVOICE</h2>
-      <p><strong>Invoice Number:</strong> ${inv.invoiceNo}</p>
-      <p><strong>Date:</strong> ${inv.date}</p>
-      <hr style="margin: 16px 0;">
-      <p><strong>Customer:</strong> ${inv.customer}</p>
-      <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
-        <thead>
-          <tr style="border-bottom: 2px solid #000;">
-            <th style="text-align: left; padding: 6px;">Item</th>
-            <th style="text-align: right; padding: 6px;">Qty</th>
-            <th style="text-align: right; padding: 6px;">Price</th>
-            <th style="text-align: right; padding: 6px;">Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td style="padding: 6px;">${inv.item}</td>
-            <td style="text-align: right; padding: 6px;">${inv.quantity}</td>
-            <td style="text-align: right; padding: 6px;">₹${inv.price}</td>
-            <td style="text-align: right; padding: 6px;">₹${inv.finalAmount}</td>
-          </tr>
-        </tbody>
-      </table>
-      <div style="text-align: right; margin-top: 20px;">
-        <h3>Final Total: ₹${inv.finalAmount}</h3>
-      </div>
-    </div>
-  `;
+  printable.innerHTML = getInvoiceHTML(inv);
   printable.style.display = 'block';
   window.print();
   printable.style.display = 'none';
@@ -345,7 +401,7 @@ function renderAll() {
   document.getElementById('countSaved').innerText = savedInvoices.length;
 
   const createBtn = document.getElementById('createInvoicesBtn');
-  createBtn.innerText = `⚡ Create Invoices ( ${validCount} )`;
+  createBtn.innerText = `⚡ Create Invoices (${validCount})`;
   createBtn.disabled = validCount === 0;
 
   const tbody = document.getElementById('tableBody');
@@ -355,18 +411,18 @@ function renderAll() {
     tbody.innerHTML = validated.map((r, idx) => {
       const hasCustErr = !r.customer;
       const hasItemErr = !r.item;
-      const hasQtyErr = r.errors.some(e => e.includes("quantity"));
-      const hasPriceErr = r.errors.some(e => e.includes("price"));
+      const hasQtyErr = r.errors.some(e => e.toLowerCase().includes("quantity"));
+      const hasPriceErr = r.errors.some(e => e.toLowerCase().includes("price"));
 
       return `
         <tr class="${r.isValid ? '' : 'has-error'}">
           <td>${idx + 1}</td>
-          <td><input type="text" class="${hasCustErr ? 'field-error' : ''}" value="${r.customer}" placeholder="Customer" onchange="handleCellChange('${r.id}', 'customer', this.value)"></td>
-          <td><input type="text" class="${hasItemErr ? 'field-error' : ''}" value="${r.item}" placeholder="Item" onchange="handleCellChange('${r.id}', 'item', this.value)"></td>
-          <td><input type="text" class="${hasQtyErr ? 'field-error' : ''}" value="${r.quantity}" placeholder="Qty" onchange="handleCellChange('${r.id}', 'quantity', this.value)"></td>
-          <td><input type="text" class="${hasPriceErr ? 'field-error' : ''}" value="${r.price}" placeholder="Price" onchange="handleCellChange('${r.id}', 'price', this.value)"></td>
+          <td><input type="text" class="${hasCustErr ? 'field-error' : ''}" value="${r.customer}" placeholder="Customer Name" oninput="updateCellSilent('${r.id}', 'customer', this.value)" onchange="handleCellBlur('${r.id}', 'customer', this.value)"></td>
+          <td><input type="text" class="${hasItemErr ? 'field-error' : ''}" value="${r.item}" placeholder="Item Name" oninput="updateCellSilent('${r.id}', 'item', this.value)" onchange="handleCellBlur('${r.id}', 'item', this.value)"></td>
+          <td><input type="text" class="${hasQtyErr ? 'field-error' : ''}" value="${r.quantity}" placeholder="Qty" oninput="updateCellSilent('${r.id}', 'quantity', this.value)" onchange="handleCellBlur('${r.id}', 'quantity', this.value)"></td>
+          <td><input type="text" class="${hasPriceErr ? 'field-error' : ''}" value="${r.price}" placeholder="Price" oninput="updateCellSilent('${r.id}', 'price', this.value)" onchange="handleCellBlur('${r.id}', 'price', this.value)"></td>
           <td style="font-weight: 600;">${r.finalAmount !== '-' ? '₹' + r.finalAmount : '-'}</td>
-          <td>${r.isValid ? '<span class="status-tag tag-ok">OK</span>' : '<span class="status-tag tag-err">' + r.errors.join(', ') + '</span>'}</td>
+          <td>${r.isValid ? '<span class="status-tag tag-ok">OK</span>' : '<span class="status-tag tag-err">' + r.errors.join(' | ') + '</span>'}</td>
           <td><button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="handleRemoveRow('${r.id}')">Remove</button></td>
         </tr>
       `;
@@ -386,11 +442,22 @@ function renderAll() {
         <td>${inv.quantity}</td>
         <td>₹${inv.price}</td>
         <td style="font-weight: 600;">₹${inv.finalAmount}</td>
-        <td><button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;" onclick="printInvoice('${inv.invoiceNo}')">Print</button></td>
+        <td>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;" onclick="openInvoice('${inv.invoiceNo}')">Open</button>
+            <button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;" onclick="printInvoice('${inv.invoiceNo}')">Print</button>
+          </div>
+        </td>
       </tr>
     `).join('');
   }
 }
+
+// Close modal when clicked outside
+window.addEventListener('click', (e) => {
+  const modal = document.getElementById('invoiceModal');
+  if (e.target === modal) closeModal();
+});
 
 renderAll();
 </script>
