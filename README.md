@@ -1,92 +1,79 @@
 Readme template · MD
-# FindIt — Campus Lost & Found Portal
+# CSV Data Cleaner and Invoice Maker 
  
 ## Team Name
-[Team name likho]
+[404 FOUNDERS]
  
 ## Team Members
-1. [Naam] — [Role, e.g. Frontend/UI]
-2. [Naam] — [Role, e.g. Firebase/Database]
-3. [Naam] — [Role, e.g. Integration/Testing]
-4. [Naam] — [Role, e.g. Git/Docs/Presentation]
+1. [SHUBHAM GAUR] — [Full Statck & Invoice Maker]
+2. [ABHISHEK SHARMA] — [Github Repo, Testing & CSV Handling]
+3. [HANNAN MEHBOOB] — [Frontend UI & Validation Logic]
+4. [NAVEEN CHAND] — [Documentation,Presentation & Quality Assurance]
 ## Selected Problem Statement
-[Problem statement ka exact naam/number jo organizers ne diya]
+[CSV Data Cleaner and Invoice Maker]
  
 ## Problem Description
-College campus mein students ka saaman (ID card, bottle, charger, books, etc.) kho jaata hai ya mil jaata hai, lekin koi centralized system nahi hai jaha log report kar sake. Students WhatsApp groups ya notice boards use karte hai jo disorganized aur inefficient hai, jiski wajah se lost items apne owner tak nahi pahunch pate.
- 
-*(Apne actual problem ke hisaab se 2-3 lines mein likho — kya problem hai, kisko face hoti hai, kyun important hai)*
- 
+Small offices frequently receive customer order batches via manual spreadsheets or CSV files that contain human entry errors—such as missing customer names, blank item descriptions, negative prices, invalid or decimal quantities, and duplicate order entries. Generating invoices directly from corrupted datasets leads to erroneous billing, accounting mismatches, and financial discrepancy. Therefore, an automated system is required to sanitize and validate order data before creating duplicate-protected, print-ready invoices.
+
 ## Proposed Solution
-FindIt ek web portal hai jaha students lost ya found items report kar sakte hai ek centralized list mein. Koi bhi student apna account bana ke item report kar sakta hai, saari list dekh sakta hai, aur jab item mil jaye toh usse "resolved" mark kar sakta hai.
- 
-*(Apna solution 2-3 lines mein — kaise problem solve ho raha hai)*
- 
+CSV Data Cleaner and Invoice Maker is an interactive web-based utility designed for small office operations to import raw sales order CSV files, automatically detect data irregularities in real time, and provide inline editing and deletion capabilities. Once the dataset is cleaned and validated, the application generates professional, duplicate-protected, and print-ready tax invoices while strictly preventing invalid rows from being billed.
+
 ## Key Features
-- User login/signup
-- Report a lost item (name, description, location, date)
-- Report a found item (name, description, location, date)
-- View all lost/found items in one list
-- Mark an item as resolved once it's returned
-*(Apne actual features ki list banao, jo bana wahi likho, jo nahi bana usse hatao)*
+- **CSV Import & Test Template:** Easily upload and parse customer order CSV files with a single click, plus a built-in "Download Sample CSV" option pre-loaded with valid and test error rows.
+- **Real-Time Data Validation:** Automatically checks imported data line-by-line and highlights:
+  - Missing customer names or missing item descriptions.
+  - Invalid quantities (must be an integer strictly greater than zero).
+  - Invalid prices (flags negative prices; price must be ≥ 0).
+  - Repeated/duplicate rows within the dataset.
+- **Interactive Inline Data Cleaning:** Allows users to edit incorrect values directly inside table cells or delete unrecoverable rows before billing.
+- **Automated Amount Calculation:** Dynamically calculates `Final Amount = Quantity × Price per Item` inside the application without requiring manual user computation.
+- **Invoice Creation & Printing:** Generates sequential, dedicated invoices only from validated ("OK") rows, complete with a clean printable tax invoice format.
+- **Strict Duplicate Protection:** Re-importing the same CSV or repeat order entries will not generate duplicate invoices for previously billed orders.
  
 ## Technology Stack
-- **Frontend:** HTML, CSS, JavaScript, Tailwind CSS
-- **Backend/Database:** Firebase (Authentication + Firestore)
-- **Hosting:** [Vercel/Netlify/Firebase Hosting/Not hosted]
+- **Frontend:** HTML5, CSS3, Modern JavaScript (ES6+)
+- **File Processing:** Browser Native `FileReader` API & Dynamic `Blob` URLs
+- **Version Control & Hosting:** Git, GitHub
+- **Hosting:** Localhost (https://404-founders-csv-invoice-maker.vercel.app/)
+
 ## Why This Tech Stack?
-Humne ye stack choose kiya kyunki Firebase se backend code likhne ki zarurat nahi padti (Auth aur database dono built-in hai), jisse hum 6.5 hours ke andar poora working project bana sake. Tailwind se UI jaldi aur clean bana.
- 
-*(1-2 lines mein apna reasoning likho — speed, simplicity, team ki familiarity, etc.)*
- 
+We chose native HTML, CSS, and modern JavaScript because it requires zero build steps, external npm libraries, or complex server configurations. This enabled our team to build, thoroughly test, and deliver a zero-latency, crash-free client-side prototype well within the 6.5-hour hackathon timeframe.
+
 ## Setup & Installation Instructions
-1. Repository clone karo:
+1. Clone the repository:
+```bash
+git clone [https://github.com/shubham4738/404-founders-csv-invoice-maker.git](https://github.com/shubham4738/404-founders-csv-invoice-maker.git)
+ 
+2. Navigate into the project folder:
 ```
-   git clone [tumhara-repo-link]
-```
-2. Project folder mein jao:
-```
-   cd [project-folder-name]
-```
-3. Dependencies install karo (agar package.json hai):
-```
-   npm install
-```
+cd 404-founders-csv-invoice-maker
  
 ## Required Environment Variables / Configuration
-Firebase config apni `.env` file ya config file mein daalo:
-```
-FIREBASE_API_KEY=your_api_key
-FIREBASE_AUTH_DOMAIN=your_auth_domain
-FIREBASE_PROJECT_ID=your_project_id
-```
-*(Jo bhi tumhare actual Firebase project ke keys hai, waha instructions do unhe kaha se lena hai — Firebase Console > Project Settings)*
- 
+No environment variables, API keys, or `.env` configuration files are required for this project[span_2](start_span)[span_2](end_span). All validations, calculations, and invoice operations run entirely client-side within the browser[span_3](start_span)[span_3](end_span).
+
 ## Database Setup
-1. Firebase Console mein naya project banao
-2. Authentication enable karo (Email/Password method)
-3. Firestore Database create karo
-4. Firestore mein ek `items` collection banega automatically jab pehla item submit hoga
+- No external database (such as Firebase, MySQL, or MongoDB) is required[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span).
+- All parsed CSV rows, validation errors, and generated invoice records are managed directly in-memory within the browser session and local state for instant processing[span_3](start_span)[span_3](end_span)[span_4](start_span)[span_4](end_span).
+
 ## How to Run the Project
-1. `index.html` file ko browser mein kholo, ya
-2. Agar local server use kar rahe ho: `npx live-server` (VS Code ka "Live Server" extension bhi use kar sakte ho)
+1. Direct Browser Execution: Double-click the `index.html` file in your project folder to open and run it instantly in any web browser (Chrome, Edge, Firefox)[span_5](start_span)[span_5](end_span).
+2. Via Local Server: If using VS Code, open the project folder, right-click on `index.html`, and select **"Open with Live Server"** (or run `npx live-server` in the terminal at `http://127.0.0.1:5500`)[span_6](start_span)[span_6](end_span)[span_7](start_span)[span_7](end_span).
+
 ## Screenshots
-*(Yaha apne app ke 2-3 screenshots add karo — login page, item list, form)*
- 
-![Login Screen](screenshots/login.png)
-![Items List](screenshots/list.png)
- 
+paste it.
+
 ## Known Limitations
-- Image upload ka feature abhi nahi hai (sirf text description)
-- Search/filter functionality nahi hai abhi
-*(Apne actual limitations likho — honest raho, judges ko pata hai 6.5 hours mein sab kuch nahi ban sakta)*
- 
+- Operates primarily client-side in the browser session without persistent cloud database synchronization.
+- Designed for single-line-item order rows per entry rather than complex multi-product bundled carts.
+- In-memory processing means clearing browser cache or resetting clears local temporary state.
+
 ## Future Scope
-- Category-wise filter (electronics, documents, etc.)
-- Email notification jab matching item mile
-- Image upload support
+- Backend integration (Node.js/Express + PostgreSQL or MongoDB) for cloud storage and multi-user role authentication.
+- Direct one-click PDF invoice export and automated email delivery to clients.
+- Multi-currency conversion support and advanced search/filtering across historical invoice archives.
+
 ## Live Demo Link
-[Agar hosted hai toh URL yaha daalo, warna "Not hosted" likh do]
- 
+[https://404-founders-csv-invoice-maker.vercel.app/](https://404-founders-csv-invoice-maker.vercel.app/)
+
 ## Repository Link
-[Tumhara GitHub repo link]
+https://github.com/shubham4738/404-founders-csv-invoice-maker
