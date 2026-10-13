@@ -1,4 +1,3 @@
-<img width="937" height="471" alt="image" src="https://github.com/user-attachments/assets/256b2354-c50b-41d9-afba-62616cf7e000" />Readme template · MD
 # CSV Data Cleaner and Invoice Maker 
  
 ## Team Name
