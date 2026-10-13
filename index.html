@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CSV Data Cleaner and Invoice Maker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #f8fafc; color: #0f172a; padding: 24px; }
+    .container { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+    .card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .header-card { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .title-area h1 { font-size: 22px; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; }
+    .badge { font-size: 11px; font-weight: 600; text-transform: uppercase; background: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 4px; }
+    .subtitle { color: #64748b; font-size: 14px; margin-top: 4px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-outline { background: #fff; border-color: #cbd5e1; color: #0f172a; }
+    .btn-outline:hover { background: #f1f5f9; }
+    .btn-danger { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+    .btn-danger:hover { background: #fecaca; }
+    .btn-success { background: #16a34a; color: #fff; }
+    .btn-success:disabled { opacity: 0.5; cursor: not-allowed; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+    .stat-box { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+    .stat-title { font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 700; }
+    .stat-val-valid { color: #16a34a; }
+    .stat-val-error { color: #dc2626; }
+    .actions-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .table-container { overflow-x: auto; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+    th { background: #f8fafc; padding: 10px 12px; font-weight: 600; color: #64748b; border-bottom: 2px solid #e2e8f0; }
+    td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: middle; }
+    tr.has-error { background-color: #fffaf0; }
+    input[type="text"] { width: 100%; padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 13px; outline: none; }
+    input.field-error { border-color: #ef4444; background: #fff5f5; }
+    .status-tag { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .tag-ok { background: #f0fdf4; color: #15803d; }
+    .tag-err { background: #fef2f2; color: #b91c1c; }
+    .empty-state { text-align: center; padding: 32px; color: #64748b; font-size: 14px; }
+    @media print {
+      body * { visibility: hidden; }
+      #printableInvoice, #printableInvoice * { visibility: visible; }
+      #printableInvoice { position: absolute; left: 0; top: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card header-card">
+    <div class="title-area">
+      <h1>CSV Data Cleaner & Invoice Maker <span class="badge">Office Tool</span></h1>
+      <p class="subtitle">Import sales CSV, validate data live, correct mistakes, and generate duplicate-protected office invoices.</p>
+    </div>
+    <!-- Direct reset without blocking confirm alert -->
+    <button class="btn btn-danger" id="resetBtn">Reset All Data</button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-box">
+      <div class="stat-title">Total Rows in Table</div>
+      <div class="stat-value" id="countTotal">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-title">Valid Rows (Ready)</div>
+      <div class="stat-value stat-val-valid" id="countValid">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-title">Rows with Errors</div>
+      <div class="stat-value stat-val-error" id="countErrors">0</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-title">Saved Invoices</div>
+      <div class="stat-value" id="countSaved">0</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="actions-bar">
+      <label class="btn btn-primary">
+        📁 Import CSV File
+        <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
+      </label>
+      <button class="btn btn-outline" id="downloadSampleBtn">⬇ Download Sample CSV</button>
+      <button class="btn btn-outline" id="addRowBtn">+ Add Row</button>
+      <button class="btn btn-outline" id="clearTableBtn">Clear Table</button>
+      <button class="btn btn-success" id="createInvoicesBtn" disabled>⚡ Create Invoices (0)</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size: 16px; margin-bottom: 4px;">Data Cleaning & Validation Table</h2>
+    <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Edit any cell inline to fix errors. Rows with "OK" will be transformed into invoices.</p>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 40px;">#</th>
+            <th>Customer Name</th>
+            <th>Item</th>
+            <th style="width: 100px;">Quantity</th>
+            <th style="width: 120px;">Price per Item ($)</th>
+            <th style="width: 120px;">Final Amount</th>
+            <th style="width: 160px;">Status</th>
+            <th style="width: 80px;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size: 16px; margin-bottom: 4px;">Created Invoices</h2>
+    <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Saved invoices stored locally. Protected against re-invoicing duplicates.</p>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Invoice #</th>
+            <th>Date</th>
+            <th>Customer</th>
+            <th>Item</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Final Amount</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="invoicesBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="printableInvoice" style="display:none; padding: 40px; background: #fff;"></div>
+
+<script>
+let tableRows = [];
+let savedInvoices = [];
+
+const SAMPLE_CSV = `Customer Name,Item,Quantity,Price per Item
+Abhishek,Notebook,5,24.5
+Hannan,Wireless Mouse,2,1800
+Abhishek,Notebook,5,24.5
+,Desk Lamp,1,45
+Shubham,,4,32
+Naveen,Hand Sanitizer 1L,0,12.5
+Harsh,Monitor Stand,abc,350
+Sumit,Pendrive,3,-15
+Himanshu,Charger,2.5,298.99
+Shivam,HD Webcam 1080p,1,4999.99`;
+
+document.getElementById('downloadSampleBtn').addEventListener('click', () => {
+  const blob = new Blob([SAMPLE_CSV], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'sample_office_orders.csv';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  tableRows = [];
+  savedInvoices = [];
+  localStorage.clear();
+  document.getElementById('csvFileInput').value = '';
+  renderAll();
+});
+
+document.getElementById('clearTableBtn').addEventListener('click', () => {
+  tableRows = [];
+  document.getElementById('csvFileInput').value = '';
+  renderAll();
+});
+
+document.getElementById('addRowBtn').addEventListener('click', () => {
+  tableRows.push({
+    id: 'row_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+    customer: '',
+    item: '',
+    quantity: '1',
+    price: '0'
+  });
+  renderAll();
+});
+
+document.getElementById('csvFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    const text = evt.target.result;
+    const lines = text.split(/\r\n|\n|\r/).filter(l => l.trim() !== '');
+    if (lines.length <= 1) return;
+
+    const parsed = [];
+    for (let i = 1; i < lines.length; i++) {
+      const cols = lines[i].split(',').map(c => c.trim());
+      parsed.push({
+        id: 'row_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substring(2, 5),
+        customer: cols[0] || '',
+        item: cols[1] || '',
+        quantity: cols[2] !== undefined ? cols[2] : '',
+        price: cols[3] !== undefined ? cols[3] : ''
+      });
+    }
+    tableRows = parsed;
+    renderAll();
+  };
+  reader.readAsText(file);
+});
+
+function handleRemoveRow(id) {
+  tableRows = tableRows.filter(r => r.id !== id);
+  renderAll();
+}
+
+function handleCellChange(id, field, value) {
+  const row = tableRows.find(r => r.id === id);
+  if (row) {
+    row[field] = value.trim();
+    renderAll();
+  }
+}
+
+function validateRows() {
+  const seenCombos = new Map();
+
+  return tableRows.map((r) => {
+    const errors = [];
+    if (!r.customer) errors.push("Missing name");
+    if (!r.item) errors.push("Missing item");
+
+    const qNum = Number(r.quantity);
+    if (r.quantity === '' || isNaN(qNum) || !Number.isInteger(qNum) || qNum <= 0) {
+      errors.push("Invalid quantity");
+    }
+
+    const pNum = Number(r.price);
+    if (r.price === '' || isNaN(pNum) || pNum < 0) {
+      errors.push("Invalid price");
+    }
+
+    const comboKey = `${r.customer.toLowerCase()}|${r.item.toLowerCase()}|${r.quantity}|${r.price}`;
+    if (seenCombos.has(comboKey)) {
+      errors.push("Repeated row");
+    } else if (r.customer && r.item) {
+      seenCombos.set(comboKey, true);
+    }
+
+    const isAlreadyInvoiced = savedInvoices.some(inv => 
+      inv.customer.toLowerCase() === r.customer.toLowerCase() &&
+      inv.item.toLowerCase() === r.item.toLowerCase() &&
+      String(inv.quantity) === String(r.quantity) &&
+      String(inv.price) === String(r.price)
+    );
+    if (isAlreadyInvoiced) {
+      errors.push("Already invoiced");
+    }
+
+    const isValid = errors.length === 0;
+    const finalAmount = isValid ? (qNum * pNum).toFixed(2) : '-';
+
+    return { ...r, errors, isValid, finalAmount, qNum, pNum };
+  });
+}
+
+document.getElementById('createInvoicesBtn').addEventListener('click', () => {
+  const validated = validateRows();
+  const readyRows = validated.filter(r => r.isValid);
+  if (readyRows.length === 0) return;
+
+  const today = new Date().toLocaleDateString();
+  const newInvoices = readyRows.map((r, i) => ({
+    invoiceNo: 'INV-' + (savedInvoices.length + i + 1001),
+    date: today,
+    customer: r.customer,
+    item: r.item,
+    quantity: r.qNum,
+    price: r.pNum,
+    finalAmount: r.finalAmount
+  }));
+
+  savedInvoices = [...savedInvoices, ...newInvoices];
+  const createdIds = new Set(readyRows.map(r => r.id));
+  tableRows = tableRows.filter(r => !createdIds.has(r.id));
+  renderAll();
+});
+
+function printInvoice(invNo) {
+  const inv = savedInvoices.find(i => i.invoiceNo === invNo);
+  if (!inv) return;
+
+  const printable = document.getElementById('printableInvoice');
+  printable.innerHTML = `
+    <div style="border: 2px solid #333; padding: 24px; max-width: 600px; margin: 0 auto;">
+      <h2>TAX INVOICE</h2>
+      <p><strong>Invoice Number:</strong> ${inv.invoiceNo}</p>
+      <p><strong>Date:</strong> ${inv.date}</p>
+      <hr style="margin: 16px 0;">
+      <p><strong>Customer:</strong> ${inv.customer}</p>
+      <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+        <thead>
+          <tr style="border-bottom: 2px solid #000;">
+            <th style="text-align: left; padding: 6px;">Item</th>
+            <th style="text-align: right; padding: 6px;">Qty</th>
+            <th style="text-align: right; padding: 6px;">Price</th>
+            <th style="text-align: right; padding: 6px;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 6px;">${inv.item}</td>
+            <td style="text-align: right; padding: 6px;">${inv.quantity}</td>
+            <td style="text-align: right; padding: 6px;">$${inv.price}</td>
+            <td style="text-align: right; padding: 6px;">$${inv.finalAmount}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="text-align: right; margin-top: 20px;">
+        <h3>Final Total: $${inv.finalAmount}</h3>
+      </div>
+    </div>
+  `;
+  printable.style.display = 'block';
+  window.print();
+  printable.style.display = 'none';
+}
+
+function renderAll() {
+  const validated = validateRows();
+  const validCount = validated.filter(r => r.isValid).length;
+  const errorCount = validated.filter(r => !r.isValid).length;
+
+  document.getElementById('countTotal').innerText = tableRows.length;
+  document.getElementById('countValid').innerText = validCount;
+  document.getElementById('countErrors').innerText = errorCount;
+  document.getElementById('countSaved').innerText = savedInvoices.length;
+
+  const createBtn = document.getElementById('createInvoicesBtn');
+  createBtn.innerText = `⚡ Create Invoices ( ${validCount} )`;
+  createBtn.disabled = validCount === 0;
+
+  const tbody = document.getElementById('tableBody');
+  if (tableRows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">No data in table. Click "Import CSV File" or "Download Sample CSV".</td></tr>';
+  } else {
+    tbody.innerHTML = validated.map((r, idx) => {
+      const hasCustErr = !r.customer;
+      const hasItemErr = !r.item;
+      const hasQtyErr = r.errors.some(e => e.includes("quantity"));
+      const hasPriceErr = r.errors.some(e => e.includes("price"));
+
+      return `
+        <tr class="${r.isValid ? '' : 'has-error'}">
+          <td>${idx + 1}</td>
+          <td><input type="text" class="${hasCustErr ? 'field-error' : ''}" value="${r.customer}" placeholder="Customer" onchange="handleCellChange('${r.id}', 'customer', this.value)"></td>
+          <td><input type="text" class="${hasItemErr ? 'field-error' : ''}" value="${r.item}" placeholder="Item" onchange="handleCellChange('${r.id}', 'item', this.value)"></td>
+          <td><input type="text" class="${hasQtyErr ? 'field-error' : ''}" value="${r.quantity}" placeholder="Qty" onchange="handleCellChange('${r.id}', 'quantity', this.value)"></td>
+          <td><input type="text" class="${hasPriceErr ? 'field-error' : ''}" value="${r.price}" placeholder="Price" onchange="handleCellChange('${r.id}', 'price', this.value)"></td>
+          <td style="font-weight: 600;">${r.finalAmount !== '-' ? '$' + r.finalAmount : '-'}</td>
+          <td>${r.isValid ? '<span class="status-tag tag-ok">OK</span>' : '<span class="status-tag tag-err">' + r.errors.join(', ') + '</span>'}</td>
+          <td><button class="btn btn-danger" style="padding: 4px 8px; font-size: 11px;" onclick="handleRemoveRow('${r.id}')">Remove</button></td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  const invBody = document.getElementById('invoicesBody');
+  if (savedInvoices.length === 0) {
+    invBody.innerHTML = '<tr><td colspan="8" class="empty-state">No invoices created yet. Import and validate your CSV rows above, then click "Create Invoices".</td></tr>';
+  } else {
+    invBody.innerHTML = savedInvoices.map(inv => `
+      <tr>
+        <td style="font-weight: 600;">${inv.invoiceNo}</td>
+        <td>${inv.date}</td>
+        <td>${inv.customer}</td>
+        <td>${inv.item}</td>
+        <td>${inv.quantity}</td>
+        <td>$${inv.price}</td>
+        <td style="font-weight: 600;">$${inv.finalAmount}</td>
+        <td><button class="btn btn-outline" style="padding: 4px 8px; font-size: 11px;" onclick="printInvoice('${inv.invoiceNo}')">Print</button></td>
+      </tr>
+    `).join('');
+  }
+}
+
+renderAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "CSV Data Cleaner and Invoice Maker",
+  "description": "Clean CSV sales data, validate rows live, prevent duplicate billing, and generate printable office invoices.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
